@@ -1,0 +1,111 @@
+---
+title: "Practical Machine Learning Course Project"
+author: "Junyan Tan"
+date: "17 January 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction
+
+### Background
+
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement - a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, the goal is to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants to predict how well they did the exercises. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website here: http://groupware.les.inf.puc-rio.br/har (see the section on the Weight Lifting Exercise Dataset).
+
+### Steps for simple machine learning
+
+1. Get data 
+2. Clean data by removing all variables NAs and DIV/0s
+3. Split training set into training and validation sets
+4. Select method to be used to create model based on data characteristics
+5. Train model using training set
+6. Use validation set to predict out of sample error
+7. Predict test set
+
+### Get and clean data
+
+Due to the large number of variables, all variables with any NAs or DIV/0s will be discarded. We guess that the remaining variables combined with the large number of data points will be sufficient to obtain the accuracy required for prediction.
+
+```{r data, message=FALSE, error=FALSE}
+setwd("C:/Users/tanj/Desktop/Coursera Data Science/R Code")
+training <- read.csv(file = "pml-training.csv",na.strings= c('#DIV/0', '', 'NA'))
+testing <- read.csv(file = "pml-testing.csv",na.strings= c('#DIV/0', '', 'NA'))
+var_keep <- sapply(training, function(x) !any(is.na(x)))
+training <- training[var_keep]
+testing <- testing[var_keep]
+
+# Remove non-relevant variables based on knowledge
+training <- training[,-c(1:7)]
+testing <- testing[,-c(1:7)]
+
+# Check summary again to review variables
+summary(training)
+
+```
+
+### Splitting training data
+
+10% of the training data is held out as a validation set in order to estimate the out-of-sample error after training the selected model on the training set. 
+
+```{r splitting, message=FALSE}
+
+library(caret)
+library(lattice)
+library(ggplot2)
+inTrain = createDataPartition(training$classe, p = 0.9)[[1]]
+training = training[inTrain,]
+validation = training[-inTrain,]
+
+```
+
+### Selection, creation and training of model
+
+The method selected was random forest because it is a classification method which should work more efficiently on a problem such as this when we are trying to use multiple variables to predict whether each sample fits any of the 5 classes. To increase the accuracy, cross-validation is used on the training set. To increase the processing speed, 4-fold cross-validation is used. No preprocessing is done because there are non-numeric variables and limiting the number of cross-validation should be sufficient to keep processing time down.
+
+```{r model, cache=TRUE}
+library(randomForest)
+set.seed(555)
+trainControl <- trainControl(method = "cv", number = 4)
+modelRf <- train(classe ~., data = training, method = "rf", trControl = trainControl)
+modelRf
+
+```
+
+### Model accuracy and error calculation
+
+The model accuracy is plotted below.
+
+```{r model_results}
+
+plot(modelRf, log = "y", lwd = 2, main = "Accuracy for random forest model", xlab = "Predictors", ylab = "Accuracy")
+
+
+```
+
+The in sample accuracy is calculated as:
+```{r in_sample}
+insamplepred = predict(modelRf, newdata = training)
+confusionMatrix(insamplepred, training$classe)$overall[1]
+```
+
+The out of sample accuracy is calculated as:
+```{r out_sample}
+val_pred = predict(modelRf, newdata = validation)
+confusionMatrix(val_pred, validation$classe)$overall[1]
+```
+
+Hence, out of sample error rate is calculated as:
+```{r out_error}
+as.numeric(1 - confusionMatrix(val_pred, validation$classe)$overall[1])
+```
+
+### Test set prediction
+
+Prediction was done on the test set and the results submitted.
+
+```{r test_pred}
+predict(modelRf, newdata = testing)
+```
