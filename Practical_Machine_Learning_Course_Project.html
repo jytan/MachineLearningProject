@@ -325,15 +325,15 @@ modelRf</code></pre>
 ##     margin</code></pre>
 <pre class="r"><code>confusionMatrix(insamplepred, training$classe)$overall[1]</code></pre>
 <pre><code>##  Accuracy 
-## 0.9994904</code></pre>
+## 0.9993772</code></pre>
 <p>The out of sample accuracy is calculated as:</p>
 <pre class="r"><code>val_pred = predict(modelRf, newdata = validation)
 confusionMatrix(val_pred, validation$classe)$overall[1]</code></pre>
-<pre><code>##  Accuracy 
-## 0.9994315</code></pre>
+<pre><code>## Accuracy 
+##        1</code></pre>
 <p>Hence, out of sample error rate is calculated as:</p>
 <pre class="r"><code>as.numeric(1 - confusionMatrix(val_pred, validation$classe)$overall[1])</code></pre>
-<pre><code>## [1] 0.0005685048</code></pre>
+<pre><code>## [1] 0</code></pre>
 </div>
 <div id="test-set-prediction" class="section level3">
 <h3>Test set prediction</h3>
